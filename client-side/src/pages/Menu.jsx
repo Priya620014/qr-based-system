@@ -37,7 +37,7 @@ function Menu() {
     axios.get(`${process.env.REACT_APP_API_URL}/api/tables/${id}`)
       .then(res => setTableNo(res.data.TableNo))
       .catch(err => console.log(err));
-  }, [authChecked]);
+  }, [authChecked, id]);
 
   const updateQty = (itemId, delta) => {
     setSelectedItems(prev => {
