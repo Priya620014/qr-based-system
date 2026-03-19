@@ -13,7 +13,7 @@ function Homepage() {
   useEffect(() => {
     if (id) {
       localStorage.setItem('id', id);
-      axios.get(`http://localhost:5000/api/tables/${id}`)
+      axios.get(`${process.env.REACT_APP_API_URL}/api/tables/${id}`)
         .then(res => setTableNo(res.data.TableNo))
         .catch(err => console.log(err));
     }
@@ -21,11 +21,11 @@ function Homepage() {
 
   const handleViewMenu = async () => {
     try {
-      const res = await axios.get('http://localhost:5000/auth/current_user', { withCredentials: true });
+      const res = await axios.get(`${process.env.REACT_APP_API_URL}/auth/current_user`, { withCredentials: true });
       if (res.data && res.data.user) navigate(`/table/${id}/menu`);
-      else window.location.href = 'http://localhost:5000/auth/google';
+      else window.location.href = `${process.env.REACT_APP_API_URL}/auth/google`;
     } catch {
-      window.location.href = 'http://localhost:5000/auth/google';
+      window.location.href = `${process.env.REACT_APP_API_URL}/auth/google`;
     }
   };
 

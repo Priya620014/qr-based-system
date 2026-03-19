@@ -14,27 +14,27 @@ function Menu() {
   const navigate = useNavigate();
 
   useEffect(() => {
-    axios.get('http://localhost:5000/auth/current_user', { withCredentials: true })
+    axios.get(`${process.env.REACT_APP_API_URL}/auth/current_user`, { withCredentials: true })
       .then(res => {
         if (res.data && res.data.user) setAuthChecked(true);
         else {
           localStorage.setItem('id', id);
-          window.location.href = 'http://localhost:5000/auth/google';
+          window.location.href = `${process.env.REACT_APP_API_URL}/auth/google`;
         }
       })
       .catch(() => {
         localStorage.setItem('id', id);
-        window.location.href = 'http://localhost:5000/auth/google';
+        window.location.href = `${process.env.REACT_APP_API_URL}/auth/google`;
       });
   }, [id]);
 
   useEffect(() => {
     if (!authChecked) return;
-    axios.get('http://localhost:5000/api/menus')
+    axios.get(`${process.env.REACT_APP_API_URL}/api/menus`)
       .then(res => setItems(res.data))
       .catch(err => console.log(err));
 
-    axios.get(`http://localhost:5000/api/tables/${id}`)
+    axios.get(`${process.env.REACT_APP_API_URL}/api/tables/${id}`)
       .then(res => setTableNo(res.data.TableNo))
       .catch(err => console.log(err));
   }, [authChecked]);
@@ -61,7 +61,7 @@ function Menu() {
     if (Items.length === 0) { alert('Please select at least one item.'); return; }
 
     try {
-      const { data: order } = await axios.post('http://localhost:5000/api/payment/create-order', { amount: totalAmount });
+      const { data: order } = await axios.post(`${process.env.REACT_APP_API_URL}/api/payment/create-order`, { amount: totalAmount });
 
       const options = {
         key: 'rzp_test_eWbSbu5AuEM5Ey',
@@ -81,7 +81,7 @@ function Menu() {
           let resolvedTableNo = tableNo;
           if (!resolvedTableNo) {
             try {
-              const res = await axios.get(`http://localhost:5000/api/tables/${id}`);
+              const res = await axios.get(`${process.env.REACT_APP_API_URL}/api/tables/${id}`);
               resolvedTableNo = res.data.TableNo;
             } catch (e) { resolvedTableNo = 'N/A'; }
           }

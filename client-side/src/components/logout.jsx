@@ -8,7 +8,7 @@ function LogoutButton() {
       return;
     }
    
-    window.location.href = `http://localhost:5000/auth/logout/${tableId}`;
+    window.location.href = `${process.env.REACT_APP_API_URL}/auth/logout/${tableId}`;
   };
 
   return (

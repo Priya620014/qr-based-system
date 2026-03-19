@@ -8,7 +8,7 @@ function Navbar() {
       <div className="logo">🍽️ ZY<span>KAA</span></div>
       <ul className="nav-links">
         <li><Link to="/">Home</Link></li>
-        <li><a href="http://localhost:5000/auth/google">Login</a></li>
+        <li><a href={`${process.env.REACT_APP_API_URL}/auth/google`}>Login</a></li>
         <li><Link to="/contact">Contact</Link></li>
         <li><Link to="/about">About</Link></li>
       </ul>
