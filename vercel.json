@@ -23,8 +23,16 @@
       "dest": "backend-server/index.js"
     },
     {
-      "src": "/(.*)",
+      "src": "/static/(.*)",
+      "dest": "client-side/build/static/$1"
+    },
+    {
+      "src": "/(.*\\.(js|css|png|jpg|ico|json|svg|map))",
       "dest": "client-side/build/$1"
+    },
+    {
+      "src": "/(.*)",
+      "dest": "client-side/build/index.html"
     }
   ]
 }
