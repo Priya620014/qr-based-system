@@ -1,58 +1,70 @@
-
 import React, { useEffect, useState } from 'react';
 import axios from 'axios';
 import './menu.css';
 import { useParams, useNavigate } from 'react-router-dom';
-import LogoutButton from '../components/logout'
+import LogoutButton from '../components/logout';
 
 function Menu() {
   const [items, setItems] = useState([]);
   const [selectedItems, setSelectedItems] = useState({});
-  const { id } = useParams(); 
+  const [authChecked, setAuthChecked] = useState(false);
+  const [search, setSearch] = useState('');
+  const [tableNo, setTableNo] = useState(null);
+  const { id } = useParams();
   const navigate = useNavigate();
 
   useEffect(() => {
+    axios.get('http://localhost:5000/auth/current_user', { withCredentials: true })
+      .then(res => {
+        if (res.data && res.data.user) setAuthChecked(true);
+        else {
+          localStorage.setItem('id', id);
+          window.location.href = 'http://localhost:5000/auth/google';
+        }
+      })
+      .catch(() => {
+        localStorage.setItem('id', id);
+        window.location.href = 'http://localhost:5000/auth/google';
+      });
+  }, [id]);
+
+  useEffect(() => {
+    if (!authChecked) return;
     axios.get('http://localhost:5000/api/menus')
       .then(res => setItems(res.data))
       .catch(err => console.log(err));
-  }, []);
 
-  const handleQuantityChange = (menuItemId, quantity) => {
-    setSelectedItems(prev => ({
-      ...prev,
-      [menuItemId]: parseInt(quantity)
-    }));
+    axios.get(`http://localhost:5000/api/tables/${id}`)
+      .then(res => setTableNo(res.data.TableNo))
+      .catch(err => console.log(err));
+  }, [authChecked]);
+
+  const updateQty = (itemId, delta) => {
+    setSelectedItems(prev => {
+      const current = prev[itemId] || 0;
+      const next = Math.max(0, current + delta);
+      return { ...prev, [itemId]: next };
+    });
   };
 
+  const totalItems = Object.values(selectedItems).reduce((a, b) => a + b, 0);
+  const totalAmount = Object.entries(selectedItems).reduce((sum, [id, qty]) => {
+    const item = items.find(i => i._id === id);
+    return sum + (item ? item.Price * qty : 0);
+  }, 0);
 
   const placeOrder = async () => {
     const Items = Object.entries(selectedItems)
       .filter(([_, qty]) => qty > 0)
       .map(([menuItem, quantity]) => ({ menuItem, quantity }));
 
-    if (Items.length === 0) {
-      alert("Please select at least one item.");
-      return;
-    }
-
-    
-    let totalAmount = 0;
-    Items.forEach(({ menuItem, quantity }) => {
-      const item = items.find(i => i._id === menuItem);
-      if (item) {
-        totalAmount += item.Price * quantity;
-      }
-    });
+    if (Items.length === 0) { alert('Please select at least one item.'); return; }
 
     try {
-  
-      const { data: order } = await axios.post('http://localhost:5000/api/payment/create-order', {
-        amount: totalAmount
-      });
+      const { data: order } = await axios.post('http://localhost:5000/api/payment/create-order', { amount: totalAmount });
 
-     
       const options = {
-        key: 'rzp_test_eWbSbu5AuEM5Ey', 
+        key: 'rzp_test_eWbSbu5AuEM5Ey',
         amount: order.amount,
         currency: order.currency,
         name: 'QR Ordering System',
@@ -60,99 +72,92 @@ function Menu() {
         order_id: order.id,
         handler: async function (response) {
           console.log('✅ Payment success:', response);
-
-        
-          // await axios.post('http://localhost:5000/api/order/place', {
-          //   TableId:id,
-          //   Items
-          // });
-
-        
           const expandedItems = Items.map(({ menuItem, quantity }) => {
             const fullItem = items.find(i => i._id === menuItem);
-            return {
-              name: fullItem?.ItemName || 'Unknown',
-              quantity
-            };
+            return { name: fullItem?.ItemName || 'Unknown', quantity };
           });
-
-          navigate('/order-success', {
-            state: {
-              tableId: id,
-              items: expandedItems,
-              estimatedTime: 1 
-            }
-          });
-        },
-        prefill: {
-          name: '',
-          email: 'test@example.com',
-          contact: '9999999999'
-        },
-        theme: {
-          color: '#28a745'
-        },
-        modal: {
-          ondismiss: function () {
-            alert('Payment cancelled.');
+          const totalQty = expandedItems.reduce((sum, i) => sum + i.quantity, 0);
+          const estimatedTime = Math.max(5, totalQty * 2);
+          let resolvedTableNo = tableNo;
+          if (!resolvedTableNo) {
+            try {
+              const res = await axios.get(`http://localhost:5000/api/tables/${id}`);
+              resolvedTableNo = res.data.TableNo;
+            } catch (e) { resolvedTableNo = 'N/A'; }
           }
-        }
+          navigate('/order-success', { state: { tableNo: resolvedTableNo, items: expandedItems, estimatedTime } });
+        },
+        prefill: { name: '', email: 'test@example.com', contact: '9999999999' },
+        theme: { color: '#f97316' },
+        modal: { ondismiss: () => alert('Payment cancelled.') }
       };
 
-      const razorpay = new window.Razorpay(options);
-      razorpay.open();
-
+      new window.Razorpay(options).open();
     } catch (err) {
       console.error('Error placing order:', err);
       alert('Something went wrong. Please try again.');
     }
   };
 
+  if (!authChecked) return (
+    <div className="menu-loading">
+      <div className="spinner" />
+      <p>Checking authentication...</p>
+    </div>
+  );
+
+  const filtered = items.filter(i => i.ItemName.toLowerCase().includes(search.toLowerCase()));
+
   return (
     <div className="menu-container">
-       <LogoutButton />
-      <h2>Our Canteen Menu</h2>
-      <div className="menu-grid">
-        {items.map(item => (
-          <div key={item._id} className="menu-card">
-            <img src={item.image} alt={item.ItemName} />
-            <h3>{item.ItemName}</h3>
-            <p className="price">₹{item.Price}</p>
-            <input
-              type="number"
-              min="0"
-              placeholder="Qty"
-              onChange={e => handleQuantityChange(item._id, e.target.value)}
-              style={{
-                marginBottom: '10px',
-                width: '50%',
-                border: '2px solid black'
-              }}
-            />
-          </div>
-        ))}
+      <div className="menu-header">
+        <h2>🍽️ <span>Canteen</span> Menu</h2>
+        <div className="header-right">
+          {tableNo && <span className="table-badge">Table {tableNo}</span>}
+          <LogoutButton />
+        </div>
       </div>
 
-      <div style={{ textAlign: 'center', marginTop: '30px' }}>
-        <button
-          onClick={placeOrder}
-          style={{
-            padding: '10px 20px',
-            fontSize: '16px',
-            backgroundColor: '#28a745',
-            color: 'white',
-            border: 'none',
-            borderRadius: '8px',
-            cursor: 'pointer',
-            width: '100%',
-            position: 'fixed',
-            bottom: '0',
-            left: '0'
-          }}
-        >
-          Pay & Place Order
-        </button>
+      <div className="menu-search-bar">
+        <input
+          type="text"
+          placeholder="🔍  Search items..."
+          value={search}
+          onChange={e => setSearch(e.target.value)}
+        />
       </div>
+
+      {filtered.length === 0 ? (
+        <p className="empty-state">No items found.</p>
+      ) : (
+        <div className="menu-grid">
+          {filtered.map(item => (
+            <div key={item._id} className="menu-card">
+              {!item.Available && <span className="unavailable-badge">Unavailable</span>}
+              <img src={item.image} alt={item.ItemName} />
+              <div className="menu-card-body">
+                <h3>{item.ItemName}</h3>
+                <p className="price">₹{item.Price}</p>
+                <div className="qty-controls">
+                  <button className="qty-btn" onClick={() => updateQty(item._id, -1)} disabled={!selectedItems[item._id]}>−</button>
+                  <span className="qty-display">{selectedItems[item._id] || 0}</span>
+                  <button className="qty-btn" onClick={() => updateQty(item._id, 1)} disabled={!item.Available}>+</button>
+                </div>
+              </div>
+            </div>
+          ))}
+        </div>
+      )}
+
+      {totalItems > 0 && (
+        <div className="cart-bar">
+          <div className="cart-bar-info">
+            <div className="cart-count">{totalItems} item{totalItems > 1 ? 's' : ''} selected</div>
+            <div className="cart-total">₹{totalAmount}</div>
+          </div>
+          <button className="cart-bar-btn" onClick={placeOrder}>Pay & Place Order →</button>
+        </div>
+      )}
     </div>
   );
 }

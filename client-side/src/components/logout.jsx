@@ -15,15 +15,14 @@ function LogoutButton() {
     <button 
       onClick={handleLogout} 
       style={{
-        backgroundColor: 'orange',
+        backgroundColor: 'transparent',
         color: 'white',
-        padding: '10px 20px',
-        border: 'none',
-        borderRadius: '5px',
+        padding: '7px 16px',
+        border: '1px solid rgba(255,255,255,0.4)',
+        borderRadius: '20px',
         cursor: 'pointer',
-        margin:'0px 1100px'
-        
-        
+        fontSize: '13px',
+        whiteSpace: 'nowrap'
       }}
     >
       Logout

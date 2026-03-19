@@ -18,7 +18,7 @@ router.post('/menu', async(req , res) =>{
 router.get('/', async (req, res) => {
   try {
     const item = await Menu.find();
-    if (!item) return res.status(404).json({ message: "Item not found" });
+    console.log('Total items found:', item.length);  // debug
     res.json(item);
   } catch (err) {
     res.status(500).json({ error: "Server error" });

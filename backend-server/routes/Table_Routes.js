@@ -15,18 +15,24 @@ router.post('/create', async (req , res) =>{
     }
 });
 
-router.get('/',async (req,res) =>
-{
-    try{
+router.get('/', async (req, res) => {
+    try {
         const tables = await Table.find();
         res.json(tables);
+    } catch (error) {
+        res.status(500).json({ error: 'Failed to get tables' });
     }
-    catch(error)
-    {
-      
-        res.status(500).json({error:'Failed to get tables'});
+});
+
+router.get('/:id', async (req, res) => {
+    try {
+        const table = await Table.findById(req.params.id);
+        if (!table) return res.status(404).json({ error: 'Table not found' });
+        res.json(table);
+    } catch (error) {
+        res.status(500).json({ error: 'Failed to get table' });
     }
-})
+});
 
 
 module.exports = router;

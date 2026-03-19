@@ -1,89 +1,113 @@
 import React, { useEffect, useState } from 'react';
 import './orderSucces.css';
 import { useLocation } from 'react-router-dom';
-import axios from 'axios';
 import LogoutButton from '../components/logout';
 
 function OrderSuccess() {
   const location = useLocation();
-  const { tableId, items, estimatedTime = 15 } = location.state || {};
+  const { tableNo, items = [], estimatedTime = 10 } = location.state || {};
 
-  const [expandedItems, setExpandedItems] = useState([]);
   const [secondsElapsed, setSecondsElapsed] = useState(0);
+  const totalSeconds = estimatedTime * 60;
 
-
-  useEffect(() => {
-    const fetchItemDetails = async () => {
-      try {
-        const responses = await Promise.all(
-          items.map(item =>
-            axios.get(`http://localhost:5000/api/menus/${item.menuItem}`)
-          )
-        );
-
-        const enrichedItems = responses.map((res, index) => ({
-          name: res.data.ItemName,
-          quantity: items[index].quantity,
-        }));
-
-        setExpandedItems(enrichedItems);
-      } catch (error) {
-        console.error("Failed to fetch menu item names", error);
-      }
-    };
-
-    if (items && items.length > 0 && items[0].menuItem) {
-      fetchItemDetails();
-    } else {
-      setExpandedItems(items); 
-    }
-  }, [items]);
-
- 
   useEffect(() => {
     const interval = setInterval(() => {
-      setSecondsElapsed(prev => prev + 1);
+      setSecondsElapsed(prev => {
+        if (prev >= totalSeconds) { clearInterval(interval); return totalSeconds; }
+        return prev + 1;
+      });
     }, 1000);
     return () => clearInterval(interval);
-  }, []);
+  }, [totalSeconds]);
 
-  const minutes = Math.floor(secondsElapsed / 60);
-  const seconds = secondsElapsed % 60;
+  const percent = Math.min((secondsElapsed / totalSeconds) * 100, 100);
+  const isCompleted = percent >= 100;
 
-  const percentComplete = Math.min((secondsElapsed / (estimatedTime * 60)) * 100, 100);
-  const isDelivered = percentComplete >= 100;
+  const remaining = totalSeconds - secondsElapsed;
+  const remMin = Math.floor(remaining / 60);
+  const remSec = remaining % 60;
+
+  // steps: 0=confirmed, 1=preparing, 2=ready
+  const currentStep = percent < 30 ? 0 : percent < 80 ? 1 : isCompleted ? 2 : 1;
+
+  const steps = [
+    { icon: '✅', label: 'Confirmed' },
+    { icon: '👨‍🍳', label: 'Preparing' },
+    { icon: '🍽️', label: 'Ready!' },
+  ];
 
   return (
-    
     <div className="order-success-container">
-      <LogoutButton />
-      <h1>🎉 Order Placed Successfully!</h1>
-      <p className="thank-you">Thank you for ordering from our canteen.</p>
 
-      <div className="summary-box">
-        <h2>📋 Order Summary</h2>
-        <p><strong>Table:</strong> {tableId || 'N/A'}</p>
-        <ul>
-          {expandedItems.map((item, index) => (
-            <li key={index}>
-              {item.name} : <strong>{item.quantity}</strong>
-            </li>
-          ))}
-        </ul>
+      <div className="order-header">
+        <h2>🍽️ <span>Zykaa</span> Canteen</h2>
+        <LogoutButton />
       </div>
 
-      <div className="timer-box">
-        <h2>⏱️ Delivery Timer</h2>
-        <p><strong>Time Elapsed:</strong> {minutes}m {seconds}s</p>
-        <div className="progress-bar">
-          <div className="progress" style={{ width: `${percentComplete}%` }} />
+      <div className="success-icon">{isCompleted ? '🎊' : '🎉'}</div>
+      <h1 className="success-title">
+        {isCompleted ? 'Order is ' : 'Order '}
+        <span>{isCompleted ? 'Ready!' : 'Placed!'}</span>
+      </h1>
+      <p className="success-sub">
+        {isCompleted ? 'Your food is ready. Enjoy your meal!' : 'Sit back and relax, your food is being prepared.'}
+      </p>
+
+      <div className="cards-wrapper">
+
+        {/* Table */}
+        <div className="info-card">
+          <h3>📍 Table Info</h3>
+          <span className="table-badge">Table {tableNo || 'N/A'}</span>
         </div>
-        {isDelivered ? (
-          <p className="delivered-msg">✅ Delivered!</p>
-        ) : (
-          <p>Estimated Time: ~{estimatedTime} minutes</p>
-        )}
-         
+
+        {/* Order Summary */}
+        <div className="info-card">
+          <h3>📋 Order Summary</h3>
+          {items.map((item, i) => (
+            <div key={i} className="order-item-row">
+              <span>{item.name}</span>
+              <span className="qty-badge">x{item.quantity}</span>
+            </div>
+          ))}
+        </div>
+
+        {/* Timer */}
+        <div className="info-card">
+          <h3>⏱️ Delivery Timer</h3>
+
+          {isCompleted ? (
+            <div className="completed-banner">
+              <div className="check">✅</div>
+              <h3>Order Completed!</h3>
+              <p>Your food has been delivered. Enjoy!</p>
+            </div>
+          ) : (
+            <>
+              <div className="timer-display">
+                <div className="time-text">
+                  {String(remMin).padStart(2, '0')}:{String(remSec).padStart(2, '0')}
+                </div>
+                <div className="time-label">estimated time remaining</div>
+              </div>
+              <div className="progress-track">
+                <div className="progress-fill" style={{ width: `${percent}%` }} />
+              </div>
+              <p className="eta-text">~{estimatedTime} min total · {Math.round(percent)}% done</p>
+            </>
+          )}
+
+          {/* Steps */}
+          <div className="steps-row" style={{ marginTop: '16px' }}>
+            {steps.map((s, i) => (
+              <div key={i} className={`step ${i < currentStep ? 'done' : i === currentStep ? 'active' : ''}`}>
+                <span className="step-icon">{s.icon}</span>
+                {s.label}
+              </div>
+            ))}
+          </div>
+        </div>
+
       </div>
     </div>
   );

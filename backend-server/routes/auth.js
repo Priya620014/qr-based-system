@@ -21,7 +21,11 @@ router.get('/google/callback',
 
 
 router.get('/current_user', (req, res) => {
-  res.send(req.user || null);
+  if (req.isAuthenticated()) {
+    res.json({ user: req.user });
+  } else {
+    res.status(401).json({ user: null });
+  }
 });
 
 
