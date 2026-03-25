@@ -1,3 +1,4 @@
+
 {
   "version": 2,
   "builds": [
@@ -24,15 +25,19 @@
     },
     {
       "src": "/static/(.*)",
-      "dest": "client-side/build/static/$1"
-    },
-    {
-      "src": "/(.*\\.(js|css|png|jpg|ico|json|svg|map))",
-      "dest": "client-side/build/$1"
+      "dest": "/client-side/static/$1"
     },
     {
       "src": "/(.*)",
-      "dest": "client-side/build/index.html"
+      "dest": "/client-side/$1",
+      "continue": true
+    },
+    {
+      "handle": "filesystem"
+    },
+    {
+      "src": "/(.*)",
+      "dest": "client-side/index.html"
     }
   ]
 }
