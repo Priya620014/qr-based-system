@@ -103,20 +103,21 @@ const paymentRoutes = require('./routes/razorpay');
 const allowedOrigins = [
   'http://localhost:3000',
   process.env.FRONTEND_URL,
-  'https://qrbasedsystem-priyanshiraj347-8387s-projects.vercel.app' // Add your actual live URL here
+  'https://qrbasedsystem-ktds5fv6d-priyanshiraj347-8387s-projects.vercel.app/' // Add your actual live URL here
 ].filter(Boolean);
 
-app.use(cors({ 
+app.use(cors({
   origin: function (origin, callback) {
-    // Allow requests with no origin (like mobile apps or curl)
+    // Allow requests with no origin (like mobile apps or curl requests)
     if (!origin) return callback(null, true);
-    if (allowedOrigins.indexOf(origin) !== -1 || process.env.NODE_ENV === 'production') {
+    
+    if (allowedOrigins.indexOf(origin) !== -1) {
       callback(null, true);
     } else {
       callback(new Error('Not allowed by CORS'));
     }
   },
-  credentials: true 
+  credentials: true // Allow cookies/headers if needed
 }));
 
 app.use(express.json());
