@@ -128,10 +128,9 @@ app.use(session({
   secret: process.env.SESSION_SECRET || 'Priyanshi',
   resave: false,
   saveUninitialized: false,
-  proxy: true, // Required for secure cookies on Vercel
   cookie: {
-    secure: true, // Vercel uses HTTPS, so this should stay true
-    sameSite: 'none' 
+    secure: process.env.NODE_ENV === 'production',
+    sameSite: process.env.NODE_ENV === 'production' ? 'none' : 'lax'
   }
 }));
 
@@ -175,5 +174,10 @@ const connectDB = async () => {
 // Call connection
 connectDB().then(() => console.log('MongoDB Connected')).catch(err => console.log(err));
 
-// Vercel handles the "listening", so we export the app
+if (process.env.NODE_ENV !== 'production') {
+  app.listen(process.env.PORT || 5000, () => {
+    console.log(`Server Running on Port ${process.env.PORT || 5000}`);
+  });
+}
+
 module.exports = app;
